@@ -1,0 +1,45 @@
+﻿version: '3.8'
+
+services:
+  frontend:
+    image: nginx:alpine
+    ports:
+      - 3000:80
+    volumes:
+      - ./index.html:/usr/share/nginx/html/index.html:ro
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - 8000:8000
+    environment:
+      - GEMINI_API_KEY=
+      - DATABASE_URL=postgresql://codepilot:secret@postgres:5432/codepilot_db
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - postgres
+      - redis
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_USER=codepilot
+      - POSTGRES_PASSWORD=secret
+      - POSTGRES_DB=codepilot_db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - 6379:6379
+
+volumes:
+  pgdata:
